@@ -194,6 +194,14 @@ textarea.input{resize:vertical;min-height:108px;line-height:1.55}
 
 .home-foot{text-align:center;margin-top:34px}
 .home-foot .iconbtn{margin:0 auto;color:#c3c7dd}
+.creator-credit{
+  margin-top:10px;
+  font-size:11px;
+  color:#b0b5cf;
+  text-align:center;
+  font-weight:500;
+  letter-spacing:-.2px;
+}
 
 /* admin */
 .admin-sec{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;box-shadow:var(--shadow)}
@@ -446,7 +454,10 @@ function renderHome(){
       <button class="entry" onclick="go('/view')"><span class="ico">${I.eye}</span><span class="body"><span class="kicker">${esc(h.entries[2].kicker)}</span><span class="name">${esc(h.entries[2].name)}</span><span class="desc">${esc(h.entries[2].desc)}</span></span><span class="arrow">${I.arrow}</span></button>
     </div>
     ${!fbReady?`<div class="setup-banner" style="margin-top:22px">⚙️ <b>설정 필요</b> · 파일 상단 <code>FIREBASE_CONFIG</code>에 본인 Firebase 정보를 넣어야 저장·조회·문구편집이 동작합니다.</div>`:''}
-    <div class="home-foot"><button class="iconbtn" onclick="go('/admin')" title="설정">${I.gear}</button></div>
+    <div class="home-foot">
+  <button class="iconbtn" onclick="go('/admin')" title="설정">${I.gear}</button>
+  <div class="creator-credit">제작자: 석현쌤</div>
+</div>
   </div>`;
 }
 
