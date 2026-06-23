@@ -15,12 +15,12 @@
 =========================================================== -->
 <script>
   const FIREBASE_CONFIG = {
-    apiKey: "PASTE_YOUR_API_KEY",
-    authDomain: "PASTE.firebaseapp.com",
-    projectId: "PASTE_PROJECT_ID",
-    storageBucket: "PASTE.appspot.com",
-    messagingSenderId: "PASTE",
-    appId: "PASTE"
+    apiKey: "AIzaSyBKvgi-Qez0yB9Bf0k7Y1IFMSqXJx4yJ50",
+    authDomain: "consulting-deb9a.firebaseapp.com",
+    projectId: "consulting-deb9a",
+    storageBucket: "consulting-deb9a.firebasestorage.app",
+    messagingSenderId: "99551749546",
+    appId: "1:99551749546:web:970d7b8d39276b5ef637d3"
   };
   const CONSULT_CODE   = "2026ai";    // 교사지원단 확인 코드
   const VIEW_PASSWORD  = "1234";      // 결과 열람 비밀번호
@@ -274,10 +274,10 @@ const DEFAULT_CONTENT = {
     auth:{topTitle:"교사지원단 인증", title:"교사지원단 확인 코드", sub1:"교사지원단 전용 화면입니다.", sub2:"지원단 확인 코드를 입력해 주세요.", placeholder:"확인 코드", btn:"확인"},
     find:{topTitle:"컨설팅 학교 찾기", title:"학교 응답 찾기", sub1:"지역과 학교명을 입력해", sub2:"컨설팅 내용을 기록하세요", regionLabel:"지역", schoolLabel:"학교명", schoolPlaceholder:"예) 00초등학교", btn:"찾기"},
     detail:{topTitle:"컨설팅 기록", subhead:"교사지원단 컨설팅 결과", answerTitle:"학교 응답 정보", concernTitle:"학교가 체크한 고민", recordTitle:"교사지원단 컨설팅 기록",
-      note1:"이 영역은 공개되어 누구나 열람·작성할 수 있습니다. 본인이 설정한 4자리 PIN을 알아야 수정·삭제할 수 있습니다.",
+      note1:"이 영역은 공개되어 누구나 열람·작성할 수 있습니다. 본인이 설정한 비밀번호를 알아야 수정·삭제할 수 있습니다.",
       authorLabel:"작성자 (예: 홍길동 00교육청 지원단)", opinionLabel:"컨설팅 의견", opinionPlaceholder:"진단 결과와 학교 상황을 바탕으로 컨설팅 의견을 작성해 주세요",
-      linkLabel:"관련 링크 (선택)", linkPlaceholder:"예) Canva 보기 전용 https://…", pinLabel:"4자리 PIN (수정·삭제용)", saveBtn:"기록 남기기", editBtn:"기록 수정하기",
-      note2:"이 PIN을 알고 있는 사람만 본인 기록을 수정·삭제할 수 있습니다. 분실 시 복구 불가.", listLabel:"컨설팅 기록", emptyText:"아직 작성된 컨설팅 기록이 없습니다. 첫 기록을 남겨 보세요.", backBtn:"뒤로 가기"},
+      linkLabel:"관련 링크 (선택)", linkPlaceholder:"예) Canva 보기 전용 https://…", pinLabel:"비밀번호 (수정·삭제용)", saveBtn:"기록 남기기", editBtn:"기록 수정하기",
+      note2:"이 비밀번호를 알고 있는 사람만 본인 기록을 수정·삭제할 수 있습니다. 분실 시 복구 불가.", listLabel:"컨설팅 기록", emptyText:"아직 작성된 컨설팅 기록이 없습니다. 첫 기록을 남겨 보세요.", backBtn:"뒤로 가기"},
   },
   view:{
     gate:{topTitle:"컨설팅 결과 열람", title:"열람 비밀번호", sub1:"컨설팅 결과 열람은 비밀번호가 필요합니다.", sub2:"비밀번호를 입력해 주세요.", placeholder:"비밀번호", btn:"확인"},
@@ -327,7 +327,7 @@ const SCHEMA=[
     ["consult.find.title","학교찾기 제목"],["consult.find.sub1","안내 1"],["consult.find.sub2","안내 2"],["consult.find.btn","‘찾기’ 버튼"],
     ["consult.detail.recordTitle","기록 카드 제목"],["consult.detail.note1","기록 안내(상단)","ta"],["consult.detail.authorLabel","작성자 라벨"],
     ["consult.detail.opinionLabel","의견 라벨"],["consult.detail.opinionPlaceholder","의견 입력 안내","ta"],["consult.detail.linkLabel","링크 라벨"],
-    ["consult.detail.pinLabel","PIN 라벨"],["consult.detail.saveBtn","‘기록 남기기’ 버튼"],["consult.detail.note2","PIN 안내(하단)","ta"],["consult.detail.emptyText","기록 없음 문구"],
+    ["consult.detail.pinLabel","비밀번호 라벨"],["consult.detail.saveBtn","‘기록 남기기’ 버튼"],["consult.detail.note2","비밀번호 안내(하단)","ta"],["consult.detail.emptyText","기록 없음 문구"],
   ]},
   {title:"결과 열람 (/view)", fields:[
     ["view.gate.title","비밀번호 화면 제목"],["view.gate.sub1","안내 1"],["view.gate.sub2","안내 2"],["view.gate.btn","‘확인’ 버튼"],
@@ -584,7 +584,7 @@ function consultDetail(){
       <div class="field" style="margin-top:6px"><label>${esc(D.authorLabel)}</label><input class="input" value="${esc(f.author)}" oninput="consultState.form.author=this.value"></div>
       <div class="field"><label>${esc(D.opinionLabel)}</label><textarea class="input" placeholder="${esc(D.opinionPlaceholder)}" oninput="consultState.form.opinion=this.value">${esc(f.opinion)}</textarea></div>
       <div class="field"><label>${esc(D.linkLabel)}</label><input class="input" placeholder="${esc(D.linkPlaceholder)}" value="${esc(f.link)}" oninput="consultState.form.link=this.value"></div>
-      <div class="field"><label>${esc(D.pinLabel)}</label><input class="input" type="password" inputmode="numeric" maxlength="4" placeholder="••••" value="${esc(f.pin)}" oninput="consultState.form.pin=this.value.replace(/[^0-9]/g,'')"></div>
+      <div class="field"><label>${esc(D.pinLabel)}</label><input class="input" type="password" placeholder="비밀번호 (예: 2026ai)" value="${esc(f.pin)}" oninput="consultState.form.pin=this.value"></div>
       <button class="btn-primary" style="margin-top:18px" onclick="saveRecord()">${esc(c.editing?D.editBtn:D.saveBtn)}</button>
       <div class="note" style="margin:12px 0 0">${esc(D.note2)}</div></div>
     <div class="info-card"><div class="card-head" style="font-size:14px">${esc(D.listLabel)} (${c.records.length})</div>${recs}</div>
@@ -593,7 +593,7 @@ function consultDetail(){
 async function saveRecord(){
   const c=consultState,f=c.form;
   if(!f.opinion.trim()){toast('컨설팅 의견을 입력하세요');return;}
-  if(!/^\d{4}$/.test(f.pin)){toast('4자리 PIN을 입력하세요');return;}
+  if(!f.pin.trim()){toast('수정·삭제용 비밀번호를 입력하세요');return;}
   if(!fbReady){toast('Firebase 설정이 필요합니다');return;}
   const col=db.collection('schools').doc(c.school.id).collection('consults');
   try{
@@ -602,8 +602,8 @@ async function saveRecord(){
     c.form={author:'',opinion:'',link:'',pin:''};await loadRecords();renderConsult();
   }catch(e){console.error(e);toast('저장에 실패했습니다');}
 }
-function editRecord(id){const r=consultState.records.find(x=>x.id===id);if(!r)return;const pin=prompt('이 기록의 4자리 PIN을 입력하세요');if(pin===null)return;if(pin!==r.pin){toast('PIN이 일치하지 않습니다');return;}consultState.editing=id;consultState.form={author:r.author||'',opinion:r.opinion||'',link:r.link||'',pin:r.pin};renderConsult();window.scrollTo(0,0);}
-async function deleteRecord(id){const r=consultState.records.find(x=>x.id===id);if(!r)return;const pin=prompt('삭제하려면 이 기록의 4자리 PIN을 입력하세요');if(pin===null)return;if(pin!==r.pin){toast('PIN이 일치하지 않습니다');return;}try{await db.collection('schools').doc(consultState.school.id).collection('consults').doc(id).delete();await db.collection('schools').doc(consultState.school.id).update({consultCount:firebase.firestore.FieldValue.increment(-1)}).catch(()=>{});toast('기록을 삭제했습니다');await loadRecords();renderConsult();}catch(e){console.error(e);toast('삭제에 실패했습니다');}}
+function editRecord(id){const r=consultState.records.find(x=>x.id===id);if(!r)return;const pin=prompt('이 기록의 비밀번호를 입력하세요');if(pin===null)return;if(pin!==r.pin){toast('비밀번호가 일치하지 않습니다');return;}consultState.editing=id;consultState.form={author:r.author||'',opinion:r.opinion||'',link:r.link||'',pin:r.pin};renderConsult();window.scrollTo(0,0);}
+async function deleteRecord(id){const r=consultState.records.find(x=>x.id===id);if(!r)return;const pin=prompt('삭제하려면 이 기록의 비밀번호를 입력하세요');if(pin===null)return;if(pin!==r.pin){toast('비밀번호가 일치하지 않습니다');return;}try{await db.collection('schools').doc(consultState.school.id).collection('consults').doc(id).delete();await db.collection('schools').doc(consultState.school.id).update({consultCount:firebase.firestore.FieldValue.increment(-1)}).catch(()=>{});toast('기록을 삭제했습니다');await loadRecords();renderConsult();}catch(e){console.error(e);toast('삭제에 실패했습니다');}}
 
 /* =========================================================
    결과 열람 (/view)
