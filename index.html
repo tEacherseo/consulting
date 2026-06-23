@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>2026 AI·디지털 활용 선도학교 교사지원단 컨설팅</title>
+
+<!-- ===========================================================
+  설정 (배포 전 이 부분만 바꾸면 됩니다)
+  1) FIREBASE_CONFIG : Firebase 콘솔 > 프로젝트 설정 > 웹 앱 config 붙여넣기
+  2) CONSULT_CODE    : 교사지원단 확인 코드
+  3) VIEW_PASSWORD   : 컨설팅 결과 열람 비밀번호 (변경 권장)
+  4) ADMIN_PASSWORD  : 설정(문구·문항 편집) 화면 비밀번호 (변경 권장)
+     → 메인 화면 맨 아래 톱니바퀴(⚙) 아이콘으로 들어갑니다.
+=========================================================== -->
+<script>
+  const FIREBASE_CONFIG = {
+    apiKey: "PASTE_YOUR_API_KEY",
+    authDomain: "PASTE.firebaseapp.com",
+    projectId: "PASTE_PROJECT_ID",
+    storageBucket: "PASTE.appspot.com",
+    messagingSenderId: "PASTE",
+    appId: "PASTE"
+  };
+  const CONSULT_CODE   = "2026ai";    // 교사지원단 확인 코드
+  const VIEW_PASSWORD  = "1234";      // 결과 열람 비밀번호
+  const ADMIN_PASSWORD = "admin2026"; // 설정 편집 비밀번호
+</script>
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+:root{
+  --bg:#f5f6fa; --card:#ffffff;
+  --navy:#272c75; --navy-deep:#1e2258; --navy-press:#343a93;
+  --ink:#1f2440; --muted:#7c83b4; --label:#8a90c0;
+  --line:#e7e9f3; --line2:#eef0f6;
+  --sel-bg:#eef1fd; --sel-border:#272c75;
+  --chip:#eef0f6; --chip-ink:#4a4f76;
+  --disabled:#bcc0db; --soft:#eceefb;
+  --warn:#e8a93b; --danger:#c2425a;
+  --radius:18px; --radius-sm:13px;
+  --shadow:0 1px 2px rgba(31,36,64,.04), 0 6px 18px rgba(31,36,64,.05);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:"Pretendard",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5}
+#app{max-width:560px;margin:0 auto;min-height:100dvh;background:var(--bg);position:relative}
+.screen{padding:22px 20px 120px}
+h1,h2,h3,p{margin:0}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:inherit;font-size:15px;color:var(--ink)}
+::placeholder{color:#aab0d2}
+
+.topbar{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5}
+.topbar .title{font-size:15px;font-weight:700;color:var(--ink)}
+.iconbtn{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--ink)}
+.iconbtn:hover{background:var(--line2)}
+.iconbtn svg{width:20px;height:20px}
+
+.progress-head{display:flex;align-items:center;gap:14px;padding:16px 16px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.progress-track{flex:1;height:7px;border-radius:99px;background:#e9ebf5;overflow:hidden}
+.progress-fill{height:100%;background:var(--navy);border-radius:99px;transition:width .3s ease}
+.progress-count{font-size:13px;color:var(--label);font-weight:600;min-width:30px;text-align:right}
+
+.eyebrow{font-size:13px;font-weight:700;color:var(--navy);letter-spacing:-.2px;margin-bottom:8px}
+.hero-h{font-size:30px;font-weight:800;letter-spacing:-1px;line-height:1.18;color:var(--ink)}
+.hero-sub{margin-top:14px;color:var(--muted);font-size:15px;line-height:1.55}
+.entries{margin-top:26px;display:flex;flex-direction:column;gap:14px}
+.entry{display:flex;align-items:center;gap:16px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 18px;box-shadow:var(--shadow);transition:transform .12s ease, box-shadow .12s ease}
+.entry:hover{transform:translateY(-1px);box-shadow:0 4px 22px rgba(31,36,64,.09)}
+.entry.featured{background:linear-gradient(135deg,var(--navy),var(--navy-deep));border-color:transparent;color:#fff}
+.entry .ico{width:46px;height:46px;border-radius:13px;background:var(--soft);display:grid;place-items:center;flex:none;color:var(--navy)}
+.entry.featured .ico{background:rgba(255,255,255,.16);color:#fff}
+.entry .ico svg{width:24px;height:24px}
+.entry .body{flex:1;min-width:0;display:flex;flex-direction:column}
+.entry .kicker{font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:3px}
+.entry.featured .kicker{color:#c7ccf2}
+.entry .name{font-size:18px;font-weight:800;letter-spacing:-.4px}
+.entry .desc{font-size:13px;color:var(--muted);margin-top:5px;line-height:1.45}
+.entry.featured .desc{color:#cdd2f4}
+.entry .arrow{color:var(--muted);flex:none}
+.entry.featured .arrow{color:#cdd2f4}
+.entry .arrow svg{width:20px;height:20px}
+
+.q-title{font-size:23px;font-weight:800;letter-spacing:-.6px;line-height:1.3;margin-top:6px}
+.q-sub{color:var(--muted);font-size:14.5px;margin-top:8px;line-height:1.5}
+.section-label{font-size:12.5px;font-weight:700;color:var(--label);margin:22px 0 11px}
+.field{margin-top:18px}
+.field > label{display:block;font-size:13px;font-weight:700;color:var(--label);margin-bottom:8px}
+
+.input,.select,textarea.input{width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:14px 15px;outline:none;transition:border-color .15s, box-shadow .15s}
+.input:focus,.select:focus,textarea.input:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(39,44,117,.10)}
+textarea.input{resize:vertical;min-height:108px;line-height:1.55}
+.select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%237c83b4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 14px center;padding-right:42px}
+
+.choices{display:flex;flex-direction:column;gap:11px}
+.choice{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:17px 17px;transition:all .12s ease}
+.choice:hover{border-color:#cfd3ea}
+.choice.sel{background:var(--sel-bg);border-color:var(--sel-border)}
+.choice .c-body{flex:1;min-width:0;display:flex;flex-direction:column}
+.choice .c-name{font-size:15.5px;font-weight:700;color:var(--ink)}
+.choice .c-desc{font-size:12.5px;color:var(--muted);margin-top:3px}
+.choice .mark{width:23px;height:23px;border-radius:50%;border:2px solid #d7daea;flex:none;display:grid;place-items:center;transition:all .12s}
+.choice.sel .mark{background:var(--navy);border-color:var(--navy)}
+.choice .mark svg{width:13px;height:13px;color:#fff;opacity:0;transition:opacity .12s}
+.choice.sel .mark svg{opacity:1}
+
+.tag-row{display:flex;gap:10px}
+.tag-row .input{flex:1}
+.btn-add{flex:none;padding:0 18px;border-radius:var(--radius-sm);background:var(--navy);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;gap:5px}
+.btn-add:hover{background:var(--navy-press)}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.tag{display:inline-flex;align-items:center;gap:6px;background:var(--chip);color:var(--chip-ink);border-radius:99px;padding:7px 11px;font-size:13px;font-weight:600}
+.tag button{display:grid;place-items:center;color:#9aa0c2}
+.tag button svg{width:14px;height:14px}
+
+.bottom-bar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:16px 20px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 70%,rgba(245,246,250,0));pointer-events:none}
+.bottom-inner{max-width:560px;width:100%;pointer-events:auto;display:flex;gap:10px}
+.btn-primary{width:100%;background:var(--navy);color:#fff;font-size:16px;font-weight:800;letter-spacing:-.3px;border-radius:99px;padding:17px;transition:background .15s, transform .1s}
+.btn-primary:hover{background:var(--navy-press)}
+.btn-primary:active{transform:translateY(1px)}
+.btn-primary[disabled]{background:var(--disabled);cursor:not-allowed}
+.btn-ghost{width:100%;background:var(--card);border:1px solid var(--line);color:var(--ink);font-weight:700;border-radius:99px;padding:15px;font-size:15px}
+.btn-ghost:hover{background:var(--line2)}
+
+.center-wrap{min-height:calc(100dvh - 64px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 22px;text-align:center}
+.gate-ico{width:58px;height:58px;border-radius:50%;background:var(--soft);display:grid;place-items:center;color:var(--navy);margin-bottom:18px}
+.gate-ico svg{width:28px;height:28px}
+.gate-title{font-size:24px;font-weight:800;letter-spacing:-.6px}
+.gate-sub{color:var(--muted);font-size:14px;margin-top:10px;line-height:1.55}
+.gate-form{width:100%;max-width:380px;margin-top:24px;display:flex;flex-direction:column;gap:12px}
+
+.school-head{display:flex;align-items:center;gap:10px;margin:4px 0 4px}
+.school-head .badge-region{background:var(--chip);color:var(--chip-ink);font-size:12px;font-weight:700;border-radius:8px;padding:4px 9px}
+.school-head .school-name{font-size:24px;font-weight:800;letter-spacing:-.6px}
+.subhead{color:var(--muted);font-size:13.5px;margin-bottom:18px}
+.share-code{font-size:12px;color:var(--label);font-weight:700;letter-spacing:.5px}
+
+.info-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-bottom:16px}
+.card-head{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;margin-bottom:14px}
+.card-head .ci{width:22px;height:22px;display:grid;place-items:center;color:var(--navy)}
+.card-head .ci svg{width:19px;height:19px}
+.card-head .pill{margin-left:auto;background:var(--chip);color:var(--chip-ink);font-size:11.5px;font-weight:700;border-radius:99px;padding:4px 10px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:16px 14px}
+.kv .k{font-size:12px;color:var(--label);font-weight:700;margin-bottom:4px}
+.kv .v{font-size:14.5px;font-weight:700;color:var(--ink);word-break:break-word}
+.concern-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.concern-tag{background:var(--chip);color:var(--chip-ink);border-radius:99px;padding:7px 12px;font-size:12.5px;font-weight:700}
+.detail-box{background:var(--sel-bg);border-radius:12px;padding:13px 14px;font-size:14px;color:var(--ink);min-height:46px;white-space:pre-wrap;word-break:break-word}
+.note{font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:14px}
+
+.record{border:1px solid var(--line);border-radius:13px;padding:14px;margin-bottom:11px;background:#fbfbfe}
+.record .r-top{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.record .r-author{font-weight:800;font-size:14px}
+.record .r-date{font-size:11.5px;color:var(--label);margin-left:auto}
+.record .r-op{font-size:14px;color:#39406a;white-space:pre-wrap;word-break:break-word;line-height:1.55}
+.record .r-link{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--navy);font-weight:700;margin-top:9px;text-decoration:none;word-break:break-all}
+.record .r-actions{display:flex;gap:8px;margin-top:11px}
+.mini-btn{font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:6px 11px;background:#fff}
+.mini-btn:hover{background:var(--line2)}
+.mini-btn.danger{color:var(--danger);border-color:#f0d6dc}
+.empty{border:1px dashed #d4d8ec;border-radius:13px;padding:22px;text-align:center;color:var(--muted);font-size:13.5px;background:#fafbff}
+
+.tabs{display:flex;background:#eceef6;border-radius:99px;padding:5px;gap:4px;margin-bottom:6px}
+.tab{flex:1;text-align:center;font-size:13px;font-weight:700;color:var(--muted);padding:10px 6px;border-radius:99px;transition:all .15s}
+.tab.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(31,36,64,.08)}
+.count-line{font-size:13px;color:var(--muted);font-weight:600;margin:18px 2px 12px}
+
+.result{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px;box-shadow:var(--shadow);margin-bottom:12px;transition:transform .12s, box-shadow .12s}
+.result:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(31,36,64,.08)}
+.result .r-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.result .r-name{font-size:16.5px;font-weight:800;letter-spacing:-.4px}
+.result .r-badges{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}
+.bdg{background:var(--chip);color:var(--chip-ink);font-size:11.5px;font-weight:700;border-radius:7px;padding:4px 8px}
+.bdg.alt{background:#e9ecfb;color:#414a8a}
+.result .r-date{font-size:11.5px;color:var(--label)}
+.result .r-arrow{color:var(--muted);flex:none}
+.result .r-arrow svg{width:20px;height:20px}
+
+.search-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px 20px;box-shadow:var(--shadow);margin-top:14px;text-align:center}
+.search-card .si{width:50px;height:50px;border-radius:50%;background:var(--soft);display:grid;place-items:center;color:var(--navy);margin:0 auto 16px}
+.search-card .si svg{width:24px;height:24px}
+.search-card h3{font-size:21px;font-weight:800;letter-spacing:-.5px}
+.search-card .sc-sub{color:var(--muted);font-size:13.5px;margin-top:8px;line-height:1.5}
+.search-card .field{text-align:left}
+.search-inline{display:flex;align-items:center;gap:10px;background:var(--card);border:1.5px solid var(--line);border-radius:99px;padding:12px 16px;margin-top:14px}
+.search-inline:focus-within{border-color:var(--navy);box-shadow:0 0 0 3px rgba(39,44,117,.1)}
+.search-inline svg{width:19px;height:19px;color:var(--muted);flex:none}
+.search-inline input{flex:1;border:none;outline:none;background:transparent}
+
+.home-foot{text-align:center;margin-top:34px}
+.home-foot .iconbtn{margin:0 auto;color:#c3c7dd}
+
+/* admin */
+.admin-sec{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;box-shadow:var(--shadow)}
+.admin-sec > summary{list-style:none;cursor:pointer;padding:16px 18px;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:space-between;color:var(--ink)}
+.admin-sec > summary::-webkit-details-marker{display:none}
+.admin-sec > summary .chev{color:var(--muted);transition:transform .2s}
+.admin-sec[open] > summary .chev{transform:rotate(90deg)}
+.admin-sec[open] > summary{border-bottom:1px solid var(--line)}
+.admin-body{padding:16px 18px}
+.afield{margin-bottom:15px}
+.afield > label{display:block;font-size:12px;font-weight:700;color:var(--label);margin-bottom:6px}
+.afield .input{padding:11px 13px;border-radius:10px}
+.afield textarea.input{min-height:74px}
+.row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.row .input{flex:1}
+.row-del{flex:none;width:40px;height:42px;border:1px solid #f0d6dc;border-radius:10px;color:var(--danger);display:grid;place-items:center;background:#fff}
+.row-del svg{width:16px;height:16px}
+.pair-item{border:1px solid var(--line);border-radius:11px;padding:11px;background:#fbfbfe;margin-bottom:9px}
+.pair-item .ptop{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.pair-item .ptop .input{flex:1;font-weight:700}
+.card-edit{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#fbfbfe}
+.card-edit .ce-label{font-size:11px;font-weight:700;color:var(--label);margin:8px 0 4px}
+.card-edit .ce-label:first-child{margin-top:0}
+.add-row{font-size:13px;font-weight:700;color:var(--navy);border:1px dashed #c3c7e4;border-radius:10px;padding:10px;width:100%;background:#f7f8ff;display:flex;align-items:center;justify-content:center;gap:5px;margin-top:2px}
+.add-row svg{width:15px;height:15px}
+
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#2a2f55;color:#fff;font-size:13.5px;font-weight:600;padding:11px 18px;border-radius:99px;z-index:50;opacity:0;transition:opacity .2s, transform .2s;pointer-events:none;max-width:90%;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+.setup-banner{background:#fff4e1;border:1px solid #f0d49a;color:#8a6418;border-radius:12px;padding:13px 15px;font-size:13px;line-height:1.5;margin-bottom:18px}
+.spin{display:inline-block;width:18px;height:18px;border:2.5px solid #d7daea;border-top-color:var(--navy);border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.loading{text-align:center;color:var(--muted);padding:40px 0;font-size:14px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="bottom-bar" id="bottomBar" style="display:none"><div class="bottom-inner" id="bottomInner"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   기본 콘텐츠 (DEFAULT) — 설정 화면에서 덮어쓸 수 있음
+========================================================= */
+const DEFAULT_CONTENT = {
+  home:{
+    eyebrow:"2026 AI·디지털 활용 선도학교",
+    titleLine1:"수업 평가 혁신", titleLine2:"컨설팅",
+    subtitle1:"우리 학교 상황을 진단하고, 교사지원단의", subtitle2:"컨설팅을 받아보세요.",
+    entries:[
+      {kicker:"선도학교 교사", name:"진단 시작하기", desc:"5단계 설문으로 우리 학교 환경을 진단합니다"},
+      {kicker:"교사지원단", name:"컨설팅 기록하기", desc:"교사지원단 이시라면 컨설팅 내용을 기록해주세요."},
+      {kicker:"공개 · 누구나", name:"컨설팅 결과 열람", desc:"각 학교의 수업 컨설팅 결과를 확인하세요"},
+    ],
+  },
+  survey:{
+    nextBtn:"다음",
+    s1:{title:"학교 정보를 알려주세요", regionLabel:"지역", schoolLabel:"학교명", regionPlaceholder:"시도를 선택하세요", schoolPlaceholder:"예) 00초등학교"},
+    regions:["춘천","원주","강릉","동해","태백","속초","삼척","홍천","횡성","영월","평창","정선","철원","화천","양구","인제","고성","양양"],
+    s2:{title:"기기 환경은 어떤가요?", sub:"사용 중인 OS와 운영 방식을 모두 골라주세요", osLabel:"기기 OS (다중 선택)", modeLabel:"기기 운용 방식 (1개)"},
+    os:["크롬북","웨일북","아이패드","안드로이드","윈도우"],
+    modes:[{name:"1인 1기기",desc:"학생마다 전용 기기 보유"},{name:"카트 공용",desc:"수업마다 카트로 배부·수합"},{name:"이동 수업",desc:"특정 교실에서 공용 사용"}],
+    s3:{title:"에듀테크 계정 환경은요?", sub:"학생 계정 발급 상태를 골라주세요", label:"에듀테크 계정 환경 (1개)"},
+    accounts:[{name:"개인 계정 완료",desc:"학생 개별 계정 발급 완료"},{name:"교사 공용 계정",desc:"교사가 대표 계정으로 운용"},{name:"계정 발급 불가",desc:"보호자 동의 등 미해결"}],
+    s4:{title:"선생님의 현재 상황은요?", sub:"수업 평가 고민", label:"수업 평가 고민 (1개 이상 · 2개)", detailLabel:"고민 세부 내용 (직접 서술)", detailPlaceholder:"서술", maxSelect:2},
+    concerns:[
+      {name:"AI 코스웨어 매너리즘형",desc:"\u201cAI 문제집만 풀려요\u201d"},
+      {name:"에듀테크 번아웃형",desc:"\u201c새로운 도구 배우기 지쳤어요\u201d"},
+      {name:"PBL 평가 실종형",desc:"\u201c활동은 화려한데 평가는 주관적이에요\u201d"},
+      {name:"데이터 파편화형",desc:"\u201c앱은 10개 쓰는데 남는 데이터가 없어요\u201d"},
+      {name:"기타",desc:"직접 입력해 주세요"},
+    ],
+    s5:{title:"마지막으로, 컨설팅이 필요한 과목과 사용하시는 에듀테크 도구를 알려주세요.", sub:"주로 쓰는 도구와 평가 혁신 과목", subjectLabel:"평가 혁신 대상 과목", subjectPlaceholder:"예) 수학 (여러 과목은 쉼표로 구분)", edutechLabel:"사용중인 에듀테크", edutechPlaceholder:"예) Khanmigo", addBtn:"추가", nextBtn:"진단 완료하기"},
+    done:{title:"진단이 완료되었습니다", homeBtn:"처음으로"},
+  },
+  answerLabels:{submittedAt:"제출 일시", region:"지역", school:"학교명", os:"기기 OS", mode:"기기 운용 방식", account:"에듀테크 계정 환경", subject:"평가 혁신 대상 과목", edutech:"사용중인 에듀테크"},
+  consult:{
+    auth:{topTitle:"교사지원단 인증", title:"교사지원단 확인 코드", sub1:"교사지원단 전용 화면입니다.", sub2:"지원단 확인 코드를 입력해 주세요.", placeholder:"확인 코드", btn:"확인"},
+    find:{topTitle:"컨설팅 학교 찾기", title:"학교 응답 찾기", sub1:"지역과 학교명을 입력해", sub2:"컨설팅 내용을 기록하세요", regionLabel:"지역", schoolLabel:"학교명", schoolPlaceholder:"예) 00초등학교", btn:"찾기"},
+    detail:{topTitle:"컨설팅 기록", subhead:"교사지원단 컨설팅 결과", answerTitle:"학교 응답 정보", concernTitle:"학교가 체크한 고민", recordTitle:"교사지원단 컨설팅 기록",
+      note1:"이 영역은 공개되어 누구나 열람·작성할 수 있습니다. 본인이 설정한 4자리 PIN을 알아야 수정·삭제할 수 있습니다.",
+      authorLabel:"작성자 (예: 홍길동 00교육청 지원단)", opinionLabel:"컨설팅 의견", opinionPlaceholder:"진단 결과와 학교 상황을 바탕으로 컨설팅 의견을 작성해 주세요",
+      linkLabel:"관련 링크 (선택)", linkPlaceholder:"예) Canva 보기 전용 https://…", pinLabel:"4자리 PIN (수정·삭제용)", saveBtn:"기록 남기기", editBtn:"기록 수정하기",
+      note2:"이 PIN을 알고 있는 사람만 본인 기록을 수정·삭제할 수 있습니다. 분실 시 복구 불가.", listLabel:"컨설팅 기록", emptyText:"아직 작성된 컨설팅 기록이 없습니다. 첫 기록을 남겨 보세요.", backBtn:"뒤로 가기"},
+  },
+  view:{
+    gate:{topTitle:"컨설팅 결과 열람", title:"열람 비밀번호", sub1:"컨설팅 결과 열람은 비밀번호가 필요합니다.", sub2:"비밀번호를 입력해 주세요.", placeholder:"비밀번호", btn:"확인"},
+    tabs:{name:"학교명 검색", level:"학교급·과목 검색", keyword:"키워드 검색"},
+    nameSearch:{title:"학교 결과 찾기", sub1:"지역과 학교명을 입력해", sub2:"컨설팅 결과를 열람하세요", regionLabel:"지역", schoolLabel:"학교명", schoolPlaceholder:"예) 00초등학교", btn:"찾기"},
+    levelSearch:{title:"학교급·과목으로 찾기", sub:"학교급과 과목을 선택하면 결과가 표시됩니다", levelLabel:"학교급", subjectLabel:"평가 혁신 대상 과목", allSubjects:"전체 과목"},
+    keywordSearch:{title:"키워드로 검색", sub:"학교명·지역·과목·에듀테크·고민 내용에서 키워드를 검색합니다", placeholder:"키워드"},
+    levels:["초등학교","중학교","고등학교","유치원","기타"],
+    subjects:["국어","수학","사회","과학","영어","도덕","음악","미술","체육","실과/기술가정","창의적체험활동","타교과","기타"],
+    detail:{recordTitle:"교사지원단 컨설팅 기록", viewOnly:"열람 전용", note:"이 영역은 공개되어 누구나 열람할 수 있습니다. 작성은 교사지원단 화면에서 가능합니다.", listLabel:"컨설팅 기록", emptyText:"아직 작성된 컨설팅 기록이 없습니다. 첫 기록을 남겨 보세요.", backBtn:"뒤로 가기", answerTitle:"학교 응답 정보", concernTitle:"학교가 체크한 고민", subhead:"교사지원단 컨설팅 결과"},
+  },
+};
+
+/* 설정 편집 화면 구성 (path, 라벨, 타입) — 타입: text(기본)/ta/num/list/pairs/cards */
+const SCHEMA=[
+  {title:"메인 화면", fields:[
+    ["home.eyebrow","상단 작은 문구"],["home.titleLine1","제목 1줄"],["home.titleLine2","제목 2줄"],
+    ["home.subtitle1","설명 1줄"],["home.subtitle2","설명 2줄"],["home.entries","진입점 카드 3개","cards"],
+  ]},
+  {title:"설문 · 공통 / 1단계 학교정보", fields:[
+    ["survey.nextBtn","‘다음’ 버튼"],["survey.s1.title","1단계 제목"],["survey.s1.regionLabel","지역 라벨"],
+    ["survey.s1.schoolLabel","학교명 라벨"],["survey.s1.regionPlaceholder","지역 안내문구"],["survey.s1.schoolPlaceholder","학교명 입력 예시"],
+    ["survey.regions","지역 목록","list"],
+  ]},
+  {title:"설문 2단계 · 기기 환경", fields:[
+    ["survey.s2.title","제목"],["survey.s2.sub","부제"],["survey.s2.osLabel","OS 섹션 라벨"],["survey.os","기기 OS 목록","list"],
+    ["survey.s2.modeLabel","운용방식 섹션 라벨"],["survey.modes","기기 운용 방식 (이름·설명)","pairs"],
+  ]},
+  {title:"설문 3단계 · 계정 환경", fields:[
+    ["survey.s3.title","제목"],["survey.s3.sub","부제"],["survey.s3.label","섹션 라벨"],["survey.accounts","계정 환경 (이름·설명)","pairs"],
+  ]},
+  {title:"설문 4단계 · 평가 고민", fields:[
+    ["survey.s4.title","제목"],["survey.s4.sub","부제"],["survey.s4.label","섹션 라벨"],["survey.s4.maxSelect","최대 선택 개수","num"],
+    ["survey.concerns","고민 유형 (이름·설명)","pairs"],["survey.s4.detailLabel","세부서술 라벨"],["survey.s4.detailPlaceholder","세부서술 안내"],
+  ]},
+  {title:"설문 5단계 · 과목/도구 + 완료", fields:[
+    ["survey.s5.title","제목"],["survey.s5.sub","부제"],["survey.s5.subjectLabel","과목 라벨"],["survey.s5.subjectPlaceholder","과목 입력 예시"],
+    ["survey.s5.edutechLabel","에듀테크 라벨"],["survey.s5.edutechPlaceholder","에듀테크 입력 예시"],["survey.s5.addBtn","‘추가’ 버튼"],["survey.s5.nextBtn","‘완료’ 버튼"],
+    ["survey.done.title","완료 화면 문구"],["survey.done.homeBtn","‘처음으로’ 버튼"],
+  ]},
+  {title:"학교 응답 항목 라벨 (공통)", fields:[
+    ["answerLabels.submittedAt","제출 일시"],["answerLabels.region","지역"],["answerLabels.school","학교명"],["answerLabels.os","기기 OS"],
+    ["answerLabels.mode","기기 운용 방식"],["answerLabels.account","계정 환경"],["answerLabels.subject","대상 과목"],["answerLabels.edutech","사용 에듀테크"],
+  ]},
+  {title:"컨설팅 기록 (/consult)", fields:[
+    ["consult.auth.title","인증 제목"],["consult.auth.sub1","인증 안내 1"],["consult.auth.sub2","인증 안내 2"],["consult.auth.btn","‘확인’ 버튼"],
+    ["consult.find.title","학교찾기 제목"],["consult.find.sub1","안내 1"],["consult.find.sub2","안내 2"],["consult.find.btn","‘찾기’ 버튼"],
+    ["consult.detail.recordTitle","기록 카드 제목"],["consult.detail.note1","기록 안내(상단)","ta"],["consult.detail.authorLabel","작성자 라벨"],
+    ["consult.detail.opinionLabel","의견 라벨"],["consult.detail.opinionPlaceholder","의견 입력 안내","ta"],["consult.detail.linkLabel","링크 라벨"],
+    ["consult.detail.pinLabel","PIN 라벨"],["consult.detail.saveBtn","‘기록 남기기’ 버튼"],["consult.detail.note2","PIN 안내(하단)","ta"],["consult.detail.emptyText","기록 없음 문구"],
+  ]},
+  {title:"결과 열람 (/view)", fields:[
+    ["view.gate.title","비밀번호 화면 제목"],["view.gate.sub1","안내 1"],["view.gate.sub2","안내 2"],["view.gate.btn","‘확인’ 버튼"],
+    ["view.tabs.name","탭1 라벨"],["view.tabs.level","탭2 라벨"],["view.tabs.keyword","탭3 라벨"],
+    ["view.nameSearch.title","학교명검색 제목"],["view.nameSearch.sub1","안내 1"],["view.nameSearch.sub2","안내 2"],
+    ["view.levelSearch.title","학교급검색 제목"],["view.levelSearch.sub","부제"],["view.levelSearch.allSubjects","‘전체 과목’ 문구"],
+    ["view.keywordSearch.title","키워드검색 제목"],["view.keywordSearch.sub","부제"],["view.keywordSearch.placeholder","입력 예시"],
+    ["view.levels","학교급 목록","list"],["view.subjects","과목 목록","list"],
+    ["view.detail.viewOnly","‘열람 전용’ 배지"],["view.detail.note","안내 문구","ta"],["view.detail.emptyText","기록 없음 문구"],
+  ]},
+];
+
+/* =========================================================
+   아이콘
+========================================================= */
+const I = {
+  clipboard:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6a1 1 0 0 1 1 1v1h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2V4a1 1 0 0 1 1-1z"/><path d="M9 4h6v2H9z" fill="currentColor" stroke="none"/></svg>',
+  pencil:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  eye:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  arrow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20z"/><path d="M12 9v5"/><circle cx="12" cy="17.5" r=".6" fill="currentColor"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>',
+  sparkle:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.7 4.6a4 4 0 0 0 2.4 2.4l4.6 1.7-4.6 1.7a4 4 0 0 0-2.4 2.4L12 20.4l-1.7-4.6a4 4 0 0 0-2.4-2.4L3.3 11.7l4.6-1.7a4 4 0 0 0 2.4-2.4z"/><path d="M19 3l.6 1.6L21 5.2l-1.4.6L19 7.4l-.6-1.6L17 5.2l1.4-.6z"/></svg>',
+  record:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 3.5a2.1 2.1 0 0 1 3 3l-9 9-4 1 1-4z"/><path d="M4 21h16"/></svg>',
+  link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.65 1.65 0 0 0 .33 1.82l.05.05a2 2 0 1 1-2.83 2.83l-.05-.05a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.05.05a2 2 0 1 1-2.83-2.83l.05-.05a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 8.6a1.65 1.65 0 0 0-.33-1.82l-.05-.05a2 2 0 1 1 2.83-2.83l.05.05a1.65 1.65 0 0 0 1.82.33h.09A1.65 1.65 0 0 0 10 3.18V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.05-.05a2 2 0 1 1 2.83 2.83l-.05.05a1.65 1.65 0 0 0-.33 1.82v.09c.2.61.79 1.05 1.42 1.09H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+};
+
+/* =========================================================
+   Firebase
+========================================================= */
+let db=null, fbReady=false;
+(function initFirebase(){
+  if(FIREBASE_CONFIG.apiKey.startsWith("PASTE")) return;
+  try{ firebase.initializeApp(FIREBASE_CONFIG); db=firebase.firestore(); fbReady=true; }
+  catch(e){ console.error(e); }
+})();
+
+/* =========================================================
+   유틸 + 콘텐츠 로딩
+========================================================= */
+const $app=document.getElementById('app');
+const $bar=document.getElementById('bottomBar');
+const $barInner=document.getElementById('bottomInner');
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function go(hash){location.hash=hash;}
+function getPath(obj,path){return path.split('.').reduce((o,k)=>(o==null?undefined:o[k]),obj);}
+function setPath(obj,path,val){const ks=path.split('.');let o=obj;for(let i=0;i<ks.length-1;i++){if(o[ks[i]]==null)o[ks[i]]={};o=o[ks[i]];}o[ks[ks.length-1]]=val;}
+function deepMerge(base,over){
+  if(over===undefined||over===null) return clone(base);
+  if(Array.isArray(base)) return Array.isArray(over)?clone(over):clone(base);
+  if(typeof base==='object'){const out={};for(const k in base) out[k]=deepMerge(base[k], over[k]); return out;}
+  return over;
+}
+let C = clone(DEFAULT_CONTENT);     // 현재 적용 콘텐츠
+async function loadContent(){
+  if(!fbReady) return;
+  try{
+    const doc=await db.collection('settings').doc('content').get();
+    if(doc.exists) C = deepMerge(DEFAULT_CONTENT, doc.data());
+  }catch(e){ console.error('content load',e); }
+}
+function schoolLevelOf(name){
+  if(/초등학교|초등|분교/.test(name)) return "초등학교";
+  if(/중학교/.test(name)) return "중학교";
+  if(/고등학교|고교/.test(name)) return "고등학교";
+  if(/유치원/.test(name)) return "유치원";
+  return "기타";
+}
+function genCode(){const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+function fmtDate(ts){let d=ts;if(ts&&ts.toDate)d=ts.toDate();else if(typeof ts==='number')d=new Date(ts);else if(!(ts instanceof Date))d=new Date();return d.toLocaleString('ko-KR',{year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit'});}
+let toastT;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2400);}
+function setBottom(html){if(!html){$bar.style.display='none';$barInner.innerHTML='';return;}$bar.style.display='flex';$barInner.innerHTML=html;}
+function topbar(title,backHash){return `<div class="topbar"><button class="iconbtn" onclick="${backHash?`go('${backHash}')`:'history.back()'}">${I.back}</button><div class="title">${esc(title)}</div></div>`;}
+function el(html){const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstElementChild;}
+async function loadAllSchools(){if(!fbReady)return[];const snap=await db.collection('schools').orderBy('submittedAt','desc').get();return snap.docs.map(d=>({id:d.id,...d.data()}));}
+
+/* =========================================================
+   라우터
+========================================================= */
+function router(){
+  const h=location.hash.replace(/^#/,'')||'/';
+  setBottom(null);
+  if(h==='/'||h==='') renderHome();
+  else if(h.startsWith('/survey')) renderSurvey();
+  else if(h.startsWith('/consult')) renderConsult();
+  else if(h.startsWith('/view')) renderView();
+  else if(h.startsWith('/admin')) renderAdmin();
+  else renderHome();
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',router);
+
+/* =========================================================
+   홈
+========================================================= */
+function renderHome(){
+  const h=C.home;
+  $app.innerHTML=`
+  <div class="screen">
+    <div class="eyebrow">${esc(h.eyebrow)}</div>
+    <h1 class="hero-h">${esc(h.titleLine1)}<br>${esc(h.titleLine2)}</h1>
+    <p class="hero-sub">${esc(h.subtitle1)}<br>${esc(h.subtitle2)}</p>
+    <div class="entries">
+      <button class="entry featured" onclick="go('/survey')"><span class="ico">${I.clipboard}</span><span class="body"><span class="kicker">${esc(h.entries[0].kicker)}</span><span class="name">${esc(h.entries[0].name)}</span><span class="desc">${esc(h.entries[0].desc)}</span></span><span class="arrow">${I.arrow}</span></button>
+      <button class="entry" onclick="go('/consult')"><span class="ico">${I.pencil}</span><span class="body"><span class="kicker">${esc(h.entries[1].kicker)}</span><span class="name">${esc(h.entries[1].name)}</span><span class="desc">${esc(h.entries[1].desc)}</span></span><span class="arrow">${I.arrow}</span></button>
+      <button class="entry" onclick="go('/view')"><span class="ico">${I.eye}</span><span class="body"><span class="kicker">${esc(h.entries[2].kicker)}</span><span class="name">${esc(h.entries[2].name)}</span><span class="desc">${esc(h.entries[2].desc)}</span></span><span class="arrow">${I.arrow}</span></button>
+    </div>
+    ${!fbReady?`<div class="setup-banner" style="margin-top:22px">⚙️ <b>설정 필요</b> · 파일 상단 <code>FIREBASE_CONFIG</code>에 본인 Firebase 정보를 넣어야 저장·조회·문구편집이 동작합니다.</div>`:''}
+    <div class="home-foot"><button class="iconbtn" onclick="go('/admin')" title="설정">${I.gear}</button></div>
+  </div>`;
+}
+
+/* =========================================================
+   진단 설문
+========================================================= */
+let survey;
+function resetSurvey(){survey={step:1,region:'',schoolName:'',os:[],mode:'',account:'',concerns:[],concernDetail:'',subject:'',edutech:[],etInput:'',done:false};}
+function renderSurvey(){
+  if(!survey) resetSurvey();
+  if(survey.done) return renderSurveyDone();
+  const s=survey,total=5,S=C.survey;
+  const head=`<div class="progress-head"><button class="iconbtn" onclick="surveyBack()">${I.back}</button><div class="progress-track"><div class="progress-fill" style="width:${s.step/total*100}%"></div></div><button class="iconbtn" onclick="go('/')" title="처음으로">${I.home}</button><div class="progress-count">${s.step}/${total}</div></div>`;
+  let body='',canNext=false;
+  if(s.step===1){
+    canNext=s.region&&s.schoolName.trim();
+    body=`<h2 class="q-title">${esc(S.s1.title)}</h2>
+      <div class="field"><label>${esc(S.s1.regionLabel)}</label>
+        <select class="select" onchange="survey.region=this.value;syncSurveyBtn()"><option value="" ${!s.region?'selected':''} disabled>${esc(S.s1.regionPlaceholder)}</option>${S.regions.map(r=>`<option ${s.region===r?'selected':''}>${esc(r)}</option>`).join('')}</select></div>
+      <div class="field"><label>${esc(S.s1.schoolLabel)}</label><input class="input" placeholder="${esc(S.s1.schoolPlaceholder)}" value="${esc(s.schoolName)}" oninput="survey.schoolName=this.value;syncSurveyBtn()"></div>`;
+  }else if(s.step===2){
+    canNext=s.os.length>0&&s.mode;
+    body=`<h2 class="q-title">${esc(S.s2.title)}</h2><p class="q-sub">${esc(S.s2.sub)}</p>
+      <div class="section-label">${esc(S.s2.osLabel)}</div>
+      <div class="choices">${S.os.map((o,i)=>`<button class="choice ${s.os.includes(o)?'sel':''}" onclick="pickOS(${i})"><span class="c-body"><span class="c-name">${esc(o)}</span></span><span class="mark">${I.check}</span></button>`).join('')}</div>
+      <div class="section-label">${esc(S.s2.modeLabel)}</div>
+      <div class="choices">${S.modes.map((m,i)=>`<button class="choice ${s.mode===m.name?'sel':''}" onclick="pickMode(${i})"><span class="c-body"><span class="c-name">${esc(m.name)}</span>${m.desc?`<span class="c-desc">${esc(m.desc)}</span>`:''}</span><span class="mark">${I.check}</span></button>`).join('')}</div>`;
+  }else if(s.step===3){
+    canNext=!!s.account;
+    body=`<h2 class="q-title">${esc(S.s3.title)}</h2><p class="q-sub">${esc(S.s3.sub)}</p>
+      <div class="section-label">${esc(S.s3.label)}</div>
+      <div class="choices">${S.accounts.map((a,i)=>`<button class="choice ${s.account===a.name?'sel':''}" onclick="pickAccount(${i})"><span class="c-body"><span class="c-name">${esc(a.name)}</span>${a.desc?`<span class="c-desc">${esc(a.desc)}</span>`:''}</span><span class="mark">${I.check}</span></button>`).join('')}</div>`;
+  }else if(s.step===4){
+    canNext=s.concerns.length>=1;
+    body=`<h2 class="q-title">${esc(S.s4.title)}</h2><p class="q-sub">${esc(S.s4.sub)}</p>
+      <div class="section-label">${esc(S.s4.label)}</div>
+      <div class="choices">${S.concerns.map((c,i)=>`<button class="choice ${s.concerns.includes(c.name)?'sel':''}" onclick="pickConcern(${i})"><span class="c-body"><span class="c-name">${esc(c.name)}</span>${c.desc?`<span class="c-desc">${esc(c.desc)}</span>`:''}</span><span class="mark">${I.check}</span></button>`).join('')}</div>
+      <div class="field"><label>${esc(S.s4.detailLabel)}</label><textarea class="input" placeholder="${esc(S.s4.detailPlaceholder)}" oninput="survey.concernDetail=this.value">${esc(s.concernDetail)}</textarea></div>`;
+  }else if(s.step===5){
+    canNext=!!s.subject.trim();
+    body=`<h2 class="q-title">${esc(S.s5.title)}</h2><p class="q-sub">${esc(S.s5.sub)}</p>
+      <div class="field"><label>${esc(S.s5.subjectLabel)}</label><input class="input" placeholder="${esc(S.s5.subjectPlaceholder)}" value="${esc(s.subject)}" oninput="survey.subject=this.value;syncSurveyBtn()"></div>
+      <div class="field"><label>${esc(S.s5.edutechLabel)} (${s.edutech.length}개)</label>
+        <div class="tag-row"><input class="input" id="etInput" placeholder="${esc(S.s5.edutechPlaceholder)}" value="${esc(s.etInput)}" oninput="survey.etInput=this.value" onkeydown="if(event.key==='Enter')addEdutech()"><button class="btn-add" onclick="addEdutech()">${I.plus} ${esc(S.s5.addBtn)}</button></div>
+        <div class="tags">${s.edutech.map((t,i)=>`<span class="tag">${esc(t)}<button onclick="rmEdutech(${i})">${I.x}</button></span>`).join('')}</div></div>`;
+  }
+  $app.innerHTML=head+`<div class="screen" style="padding-top:24px">${body}</div>`;
+  const lbl=s.step===5?S.s5.nextBtn:S.nextBtn;
+  setBottom(`<button class="btn-primary" id="surveyNext" ${canNext?'':'disabled'} onclick="surveyNext()">${esc(lbl)}</button>`);
+}
+function syncSurveyBtn(){const s=survey;let ok=false;if(s.step===1)ok=s.region&&s.schoolName.trim();else if(s.step===2)ok=s.os.length>0&&s.mode;else if(s.step===3)ok=!!s.account;else if(s.step===4)ok=s.concerns.length>=1;else if(s.step===5)ok=!!s.subject.trim();const b=document.getElementById('surveyNext');if(b)b.disabled=!ok;}
+function toggleOS(o){const i=survey.os.indexOf(o);i>-1?survey.os.splice(i,1):survey.os.push(o);renderSurvey();}
+function pickOS(i){const o=C.survey.os[i];const j=survey.os.indexOf(o);j>-1?survey.os.splice(j,1):survey.os.push(o);renderSurvey();}
+function pickMode(i){survey.mode=C.survey.modes[i].name;renderSurvey();}
+function pickAccount(i){survey.account=C.survey.accounts[i].name;renderSurvey();}
+function pickConcern(i){toggleConcern(C.survey.concerns[i].name);}
+function toggleConcern(c){const max=Number(C.survey.s4.maxSelect)||99;const i=survey.concerns.indexOf(c);if(i>-1)survey.concerns.splice(i,1);else{if(survey.concerns.length>=max){toast(`최대 ${max}개까지 선택할 수 있어요`);return;}survey.concerns.push(c);}renderSurvey();}
+function addEdutech(){const v=(survey.etInput||'').trim();if(!v)return;survey.edutech.push(v);survey.etInput='';renderSurvey();setTimeout(()=>{const e=document.getElementById('etInput');if(e)e.focus();},0);}
+function rmEdutech(i){survey.edutech.splice(i,1);renderSurvey();}
+function surveyBack(){if(survey.step>1){survey.step--;renderSurvey();}else go('/');}
+function surveyNext(){if(survey.step<5){survey.step++;renderSurvey();}else submitSurvey();}
+async function submitSurvey(){
+  if(!fbReady){toast('Firebase 설정이 필요합니다');return;}
+  const b=document.getElementById('surveyNext');if(b){b.disabled=true;b.innerHTML='<span class="spin"></span>';}
+  try{
+    const s=survey;
+    await db.collection('schools').add({region:s.region,schoolName:s.schoolName.trim(),schoolLevel:schoolLevelOf(s.schoolName),os:s.os,deviceMode:s.mode,accountEnv:s.account,concerns:s.concerns,concernDetail:s.concernDetail.trim(),subject:s.subject.trim(),edutech:s.edutech,shareCode:genCode(),consultCount:0,submittedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    survey.done=true;renderSurvey();
+  }catch(e){console.error(e);toast('저장에 실패했습니다');if(b){b.disabled=false;b.textContent=C.survey.s5.nextBtn;}}
+}
+function renderSurveyDone(){
+  setBottom(null);
+  $app.innerHTML=`<div class="center-wrap"><div class="gate-ico">${I.sparkle}</div><div class="gate-title">${esc(C.survey.done.title)}</div><div class="gate-form"><button class="btn-ghost" onclick="resetSurvey();go('/')"><span style="display:inline-flex;align-items:center;gap:8px;justify-content:center">${I.home} ${esc(C.survey.done.homeBtn)}</span></button></div></div>`;
+}
+
+/* =========================================================
+   컨설팅 기록 (/consult)
+========================================================= */
+let consultState;
+function resetConsult(){consultState={stage:'auth',region:'',schoolName:'',school:null,records:[],form:{author:'',opinion:'',link:'',pin:''},editing:null};}
+function renderConsult(){if(!consultState)resetConsult();const c=consultState;if(c.stage==='auth')return consultAuth();if(c.stage==='find')return consultFind();if(c.stage==='detail')return consultDetail();}
+function consultAuth(){
+  setBottom(null);const A=C.consult.auth;
+  $app.innerHTML=topbar(A.topTitle,'/')+`<div class="center-wrap"><div class="gate-ico">${I.lock}</div><div class="gate-title">${esc(A.title)}</div><div class="gate-sub">${esc(A.sub1)}<br>${esc(A.sub2)}</div><div class="gate-form"><input class="input" id="authCode" type="password" placeholder="${esc(A.placeholder)}" style="text-align:center" onkeydown="if(event.key==='Enter')checkConsultCode()"><button class="btn-primary" onclick="checkConsultCode()">${esc(A.btn)}</button></div></div>`;
+  setTimeout(()=>{const e=document.getElementById('authCode');if(e)e.focus();},0);
+}
+function checkConsultCode(){const v=(document.getElementById('authCode').value||'').trim();if(v===CONSULT_CODE){consultState.stage='find';renderConsult();}else toast('확인 코드가 올바르지 않습니다');}
+function consultFind(){
+  setBottom(null);const c=consultState,F=C.consult.find;
+  $app.innerHTML=topbar(F.topTitle,'/')+`<div class="screen"><div class="search-card"><div class="si">${I.pencil}</div><h3>${esc(F.title)}</h3><div class="sc-sub">${esc(F.sub1)}<br>${esc(F.sub2)}</div>
+    <div class="field"><label>${esc(F.regionLabel)}</label><select class="select" id="cfRegion"><option value="" disabled ${!c.region?'selected':''}>${esc(C.survey.s1.regionPlaceholder)}</option>${C.survey.regions.map(r=>`<option ${c.region===r?'selected':''}>${esc(r)}</option>`).join('')}</select></div>
+    <div class="field"><label>${esc(F.schoolLabel)}</label><input class="input" id="cfName" placeholder="${esc(F.schoolPlaceholder)}" value="${esc(c.schoolName)}" onkeydown="if(event.key==='Enter')consultSearch()"></div>
+    <button class="btn-primary" style="margin-top:18px" onclick="consultSearch()">${esc(F.btn)}</button></div></div>`;
+}
+async function consultSearch(){
+  const region=document.getElementById('cfRegion').value;const name=(document.getElementById('cfName').value||'').trim();
+  if(!region||!name){toast('지역과 학교명을 입력하세요');return;}
+  consultState.region=region;consultState.schoolName=name;
+  if(!fbReady){toast('Firebase 설정이 필요합니다');return;}
+  $app.innerHTML=topbar(C.consult.find.topTitle,'/')+`<div class="loading"><span class="spin"></span><div style="margin-top:10px">검색 중…</div></div>`;
+  try{
+    const all=await loadAllSchools();const found=all.filter(s=>s.region===region&&s.schoolName===name);
+    if(found.length===0){consultFind();toast('해당 학교의 진단 응답을 찾을 수 없습니다');return;}
+    consultState.school=found[0];await loadRecords();consultState.stage='detail';renderConsult();
+  }catch(e){console.error(e);consultFind();toast('검색 중 오류가 발생했습니다');}
+}
+async function loadRecords(){const snap=await db.collection('schools').doc(consultState.school.id).collection('consults').orderBy('createdAt','asc').get();consultState.records=snap.docs.map(d=>({id:d.id,...d.data()}));}
+function answerCard(s,titles){
+  const L=C.answerLabels;
+  return `<div class="info-card"><div class="card-head"><span class="ci">${I.clipboard}</span> ${esc(titles.answerTitle)}</div>
+    <div class="kv">
+      <div><div class="k">${esc(L.submittedAt)}</div><div class="v">${fmtDate(s.submittedAt)}</div></div>
+      <div><div class="k">${esc(L.region)}</div><div class="v">${esc(s.region)}</div></div>
+      <div><div class="k">${esc(L.school)}</div><div class="v">${esc(s.schoolName)}</div></div>
+      <div><div class="k">${esc(L.os)}</div><div class="v">${esc((s.os||[]).join(', ')||'-')}</div></div>
+      <div><div class="k">${esc(L.mode)}</div><div class="v">${esc(s.deviceMode||'-')}</div></div>
+      <div><div class="k">${esc(L.account)}</div><div class="v">${esc(s.accountEnv||'-')}</div></div>
+      <div><div class="k">${esc(L.subject)}</div><div class="v">${esc(s.subject||'-')}</div></div>
+      <div><div class="k">${esc(L.edutech)}</div><div class="v">${esc((s.edutech||[]).join(', ')||'-')}</div></div>
+    </div></div>
+    <div class="info-card"><div class="card-head"><span class="ci" style="color:var(--warn)">${I.warn}</span> ${esc(titles.concernTitle)}</div>
+      <div class="concern-tags">${(s.concerns||[]).map(c=>`<span class="concern-tag">${esc(c)}</span>`).join('')||'<span class="concern-tag">-</span>'}</div>
+      <div class="detail-box">${esc(s.concernDetail||' ')}</div></div>`;
+}
+function recordHtml(r,editable){return `<div class="record"><div class="r-top"><span class="r-author">${esc(r.author||'익명')}</span><span class="r-date">${fmtDate(r.createdAt)}</span></div><div class="r-op">${esc(r.opinion||'')}</div>${r.link?`<a class="r-link" href="${esc(r.link)}" target="_blank" rel="noopener">${I.link} ${esc(r.link)}</a>`:''}${editable?`<div class="r-actions"><button class="mini-btn" onclick="editRecord('${r.id}')">수정</button><button class="mini-btn danger" onclick="deleteRecord('${r.id}')">삭제</button></div>`:''}</div>`;}
+function consultDetail(){
+  setBottom(null);const c=consultState,s=c.school,f=c.form,D=C.consult.detail;
+  const recs=c.records.map(r=>recordHtml(r,true)).join('')||`<div class="empty">${esc(D.emptyText)}</div>`;
+  $app.innerHTML=topbar(D.topTitle,'/')+`<div class="screen">
+    <div class="school-head"><span class="badge-region">${esc(s.region)}</span><span class="school-name">${esc(s.schoolName)}</span></div>
+    <div class="subhead">${esc(D.subhead)} · 공유코드 <span class="share-code">${esc(s.shareCode||'')}</span></div>
+    ${answerCard(s,D)}
+    <div class="info-card"><div class="card-head"><span class="ci">${I.record}</span> ${esc(D.recordTitle)}</div>
+      <div class="note">${esc(D.note1)}</div>
+      <div class="field" style="margin-top:6px"><label>${esc(D.authorLabel)}</label><input class="input" value="${esc(f.author)}" oninput="consultState.form.author=this.value"></div>
+      <div class="field"><label>${esc(D.opinionLabel)}</label><textarea class="input" placeholder="${esc(D.opinionPlaceholder)}" oninput="consultState.form.opinion=this.value">${esc(f.opinion)}</textarea></div>
+      <div class="field"><label>${esc(D.linkLabel)}</label><input class="input" placeholder="${esc(D.linkPlaceholder)}" value="${esc(f.link)}" oninput="consultState.form.link=this.value"></div>
+      <div class="field"><label>${esc(D.pinLabel)}</label><input class="input" type="password" inputmode="numeric" maxlength="4" placeholder="••••" value="${esc(f.pin)}" oninput="consultState.form.pin=this.value.replace(/[^0-9]/g,'')"></div>
+      <button class="btn-primary" style="margin-top:18px" onclick="saveRecord()">${esc(c.editing?D.editBtn:D.saveBtn)}</button>
+      <div class="note" style="margin:12px 0 0">${esc(D.note2)}</div></div>
+    <div class="info-card"><div class="card-head" style="font-size:14px">${esc(D.listLabel)} (${c.records.length})</div>${recs}</div>
+    <button class="btn-ghost" onclick="resetConsult();go('/')">${esc(D.backBtn)}</button></div>`;
+}
+async function saveRecord(){
+  const c=consultState,f=c.form;
+  if(!f.opinion.trim()){toast('컨설팅 의견을 입력하세요');return;}
+  if(!/^\d{4}$/.test(f.pin)){toast('4자리 PIN을 입력하세요');return;}
+  if(!fbReady){toast('Firebase 설정이 필요합니다');return;}
+  const col=db.collection('schools').doc(c.school.id).collection('consults');
+  try{
+    if(c.editing){await col.doc(c.editing).update({author:f.author.trim()||'익명',opinion:f.opinion.trim(),link:f.link.trim()});c.editing=null;toast('기록을 수정했습니다');}
+    else{await col.add({author:f.author.trim()||'익명',opinion:f.opinion.trim(),link:f.link.trim(),pin:f.pin,createdAt:firebase.firestore.FieldValue.serverTimestamp()});await db.collection('schools').doc(c.school.id).update({consultCount:firebase.firestore.FieldValue.increment(1)}).catch(()=>{});toast('컨설팅 기록을 남겼습니다');}
+    c.form={author:'',opinion:'',link:'',pin:''};await loadRecords();renderConsult();
+  }catch(e){console.error(e);toast('저장에 실패했습니다');}
+}
+function editRecord(id){const r=consultState.records.find(x=>x.id===id);if(!r)return;const pin=prompt('이 기록의 4자리 PIN을 입력하세요');if(pin===null)return;if(pin!==r.pin){toast('PIN이 일치하지 않습니다');return;}consultState.editing=id;consultState.form={author:r.author||'',opinion:r.opinion||'',link:r.link||'',pin:r.pin};renderConsult();window.scrollTo(0,0);}
+async function deleteRecord(id){const r=consultState.records.find(x=>x.id===id);if(!r)return;const pin=prompt('삭제하려면 이 기록의 4자리 PIN을 입력하세요');if(pin===null)return;if(pin!==r.pin){toast('PIN이 일치하지 않습니다');return;}try{await db.collection('schools').doc(consultState.school.id).collection('consults').doc(id).delete();await db.collection('schools').doc(consultState.school.id).update({consultCount:firebase.firestore.FieldValue.increment(-1)}).catch(()=>{});toast('기록을 삭제했습니다');await loadRecords();renderConsult();}catch(e){console.error(e);toast('삭제에 실패했습니다');}}
+
+/* =========================================================
+   결과 열람 (/view)
+========================================================= */
+let viewState;
+function resetView(){viewState={unlocked:false,tab:'name',region:'',schoolName:'',level:'',subject:'',keyword:'',all:null,detail:null};viewState.level=C.view.levels[0]||'';}
+function renderView(){if(!viewState)resetView();const v=viewState;if(!v.unlocked)return viewGate();if(v.detail)return viewDetail();viewSearch();}
+function viewGate(){
+  setBottom(null);const G=C.view.gate;
+  $app.innerHTML=topbar(G.topTitle,'/')+`<div class="center-wrap"><div class="gate-ico">${I.lock}</div><div class="gate-title">${esc(G.title)}</div><div class="gate-sub">${esc(G.sub1)}<br>${esc(G.sub2)}</div><div class="gate-form"><input class="input" id="viewPw" type="password" placeholder="${esc(G.placeholder)}" style="text-align:center" onkeydown="if(event.key==='Enter')checkViewPw()"><button class="btn-primary" onclick="checkViewPw()">${esc(G.btn)}</button></div></div>`;
+  setTimeout(()=>{const e=document.getElementById('viewPw');if(e)e.focus();},0);
+}
+function checkViewPw(){const v=(document.getElementById('viewPw').value||'').trim();if(v===VIEW_PASSWORD){viewState.unlocked=true;renderView();}else toast('비밀번호가 올바르지 않습니다');}
+async function ensureAll(){if(viewState.all===null)viewState.all=await loadAllSchools();return viewState.all;}
+function viewSearch(){
+  setBottom(null);const v=viewState,V=C.view;
+  const tabs=`<div class="tabs"><div class="tab ${v.tab==='name'?'on':''}" onclick="switchTab('name')">${esc(V.tabs.name)}</div><div class="tab ${v.tab==='level'?'on':''}" onclick="switchTab('level')">${esc(V.tabs.level)}</div><div class="tab ${v.tab==='keyword'?'on':''}" onclick="switchTab('keyword')">${esc(V.tabs.keyword)}</div></div>`;
+  let panel='';
+  if(v.tab==='name'){
+    const N=V.nameSearch;
+    panel=`<div class="search-card"><div class="si">${I.pencil}</div><h3>${esc(N.title)}</h3><div class="sc-sub">${esc(N.sub1)}<br>${esc(N.sub2)}</div>
+      <div class="field"><label>${esc(N.regionLabel)}</label><select class="select" id="vnRegion"><option value="" disabled ${!v.region?'selected':''}>${esc(C.survey.s1.regionPlaceholder)}</option>${C.survey.regions.map(r=>`<option ${v.region===r?'selected':''}>${esc(r)}</option>`).join('')}</select></div>
+      <div class="field"><label>${esc(N.schoolLabel)}</label><input class="input" id="vnName" placeholder="${esc(N.schoolPlaceholder)}" value="${esc(v.schoolName)}" onkeydown="if(event.key==='Enter')searchByName()"></div>
+      <button class="btn-primary" style="margin-top:18px" onclick="searchByName()">${esc(N.btn)}</button></div><div id="nameResults"></div>`;
+  }else if(v.tab==='level'){
+    const Lv=V.levelSearch;
+    panel=`<h2 class="q-title" style="font-size:21px">${esc(Lv.title)}</h2><p class="q-sub">${esc(Lv.sub)}</p>
+      <div style="display:flex;gap:12px;margin-top:18px">
+        <div style="flex:1"><label style="display:block;font-size:13px;font-weight:700;color:var(--label);margin-bottom:8px">${esc(Lv.levelLabel)}</label><select class="select" id="vlLevel" onchange="viewState.level=this.value;searchByLevel()">${V.levels.map(l=>`<option ${v.level===l?'selected':''}>${esc(l)}</option>`).join('')}</select></div>
+        <div style="flex:1"><label style="display:block;font-size:13px;font-weight:700;color:var(--label);margin-bottom:8px">${esc(Lv.subjectLabel)}</label><select class="select" id="vlSubject" onchange="viewState.subject=this.value;searchByLevel()"><option value="" ${!v.subject?'selected':''}>${esc(Lv.allSubjects)}</option>${V.subjects.map(s=>`<option ${v.subject===s?'selected':''}>${esc(s)}</option>`).join('')}</select></div>
+      </div><div id="levelResults"></div>`;
+  }else{
+    const K=V.keywordSearch;
+    panel=`<h2 class="q-title" style="font-size:21px">${esc(K.title)}</h2><p class="q-sub">${esc(K.sub)}</p><div class="search-inline">${I.search}<input id="vkInput" placeholder="${esc(K.placeholder)}" value="${esc(v.keyword)}" oninput="viewState.keyword=this.value;searchByKeyword()"></div><div id="kwResults"></div>`;
+  }
+  $app.innerHTML=topbar(V.gate.topTitle,'/')+`<div class="screen" style="padding-top:18px">${tabs}${panel}</div>`;
+  if(v.tab==='level')searchByLevel();
+  if(v.tab==='keyword'&&v.keyword)searchByKeyword();
+}
+function switchTab(t){viewState.tab=t;renderView();}
+function resultCard(s){const subjects=(s.subject||'').trim();return `<button class="result" onclick="openDetail('${s.id}')"><span class="r-main"><span class="r-name">${esc(s.schoolName)}</span><span class="r-badges"><span class="bdg">${esc(s.region)}</span><span class="bdg">${esc(s.schoolLevel||schoolLevelOf(s.schoolName))}</span>${subjects?`<span class="bdg">${esc(subjects)}</span>`:''}<span class="bdg alt">컨설팅 기록 (${s.consultCount||0})</span></span><span class="r-date">${fmtDate(s.submittedAt)}</span></span><span class="r-arrow">${I.arrow}</span></button>`;}
+function listHtml(arr){if(!arr.length)return `<div class="empty">조건에 맞는 결과가 없습니다.</div>`;return `<div class="count-line">총 ${arr.length}건</div>`+arr.map(resultCard).join('');}
+async function searchByName(){
+  const region=document.getElementById('vnRegion').value;const name=(document.getElementById('vnName').value||'').trim();
+  viewState.region=region;viewState.schoolName=name;
+  if(!region||!name){toast('지역과 학교명을 입력하세요');return;}
+  if(!fbReady){toast('Firebase 설정이 필요합니다');return;}
+  const all=await ensureAll();const found=all.filter(s=>s.region===region&&s.schoolName.includes(name));
+  if(found.length===1){openDetail(found[0].id);return;}
+  const box=document.getElementById('nameResults');if(box)box.innerHTML=listHtml(found);
+}
+async function searchByLevel(){if(!fbReady)return;const all=await ensureAll();const lv=viewState.level,sub=viewState.subject;const arr=all.filter(s=>(s.schoolLevel||schoolLevelOf(s.schoolName))===lv&&(!sub||(s.subject||'').includes(sub)));const box=document.getElementById('levelResults');if(box)box.innerHTML=listHtml(arr);}
+async function searchByKeyword(){if(!fbReady)return;const all=await ensureAll();const k=viewState.keyword.trim();const box=document.getElementById('kwResults');if(!k){if(box)box.innerHTML='';return;}const kl=k.toLowerCase();const arr=all.filter(s=>[s.schoolName,s.region,s.schoolLevel,s.subject,(s.edutech||[]).join(' '),(s.concerns||[]).join(' '),s.concernDetail].join(' ').toLowerCase().includes(kl));if(box)box.innerHTML=listHtml(arr);}
+async function openDetail(id){const all=await ensureAll();let s=all.find(x=>x.id===id);if(!s)return;const snap=await db.collection('schools').doc(id).collection('consults').orderBy('createdAt','asc').get();s={...s,_records:snap.docs.map(d=>({id:d.id,...d.data()}))};viewState.detail=s;renderView();window.scrollTo(0,0);}
+function viewDetail(){
+  setBottom(null);const s=viewState.detail,D=C.view.detail;
+  const recs=(s._records||[]).map(r=>recordHtml(r,false)).join('')||`<div class="empty">${esc(D.emptyText)}</div>`;
+  $app.innerHTML=topbar(C.view.gate.topTitle,'/')+`<div class="screen">
+    <div style="display:flex;align-items:center;margin-bottom:14px"><button class="iconbtn" onclick="viewState.detail=null;renderView()">${I.back}</button><div class="title" style="font-weight:700;font-size:15px;margin-left:6px">${esc(C.view.gate.topTitle)}</div><div class="share-code" style="margin-left:auto">${esc(s.shareCode||'')}</div></div>
+    <div class="school-head"><span class="badge-region">${esc(s.region)}</span><span class="school-name">${esc(s.schoolName)}</span></div>
+    <div class="subhead">${esc(D.subhead)}</div>
+    ${answerCard(s,D)}
+    <div class="info-card"><div class="card-head"><span class="ci">${I.record}</span> ${esc(D.recordTitle)} <span class="pill">${esc(D.viewOnly)}</span></div>
+      <div class="note">${esc(D.note)}</div>
+      <div class="card-head" style="font-size:13.5px;margin:6px 0 12px">${esc(D.listLabel)} (${(s._records||[]).length})</div>${recs}</div>
+    <button class="btn-ghost" onclick="viewState.detail=null;renderView()">${esc(D.backBtn)}</button></div>`;
+}
+
+/* =========================================================
+   설정(관리자) — 문구·문항 편집
+========================================================= */
+let adminUnlocked=false, adminDraft=null;
+function renderAdmin(){ if(!adminUnlocked) return adminGate(); adminForm(); }
+function adminGate(){
+  setBottom(null);
+  $app.innerHTML=topbar('설정','/')+`<div class="center-wrap"><div class="gate-ico">${I.gear}</div><div class="gate-title">설정 비밀번호</div><div class="gate-sub">문구·설문 항목을 편집하는 화면입니다.<br>비밀번호를 입력해 주세요.</div><div class="gate-form"><input class="input" id="adminPw" type="password" placeholder="비밀번호" style="text-align:center" onkeydown="if(event.key==='Enter')checkAdminPw()"><button class="btn-primary" onclick="checkAdminPw()">확인</button></div></div>`;
+  setTimeout(()=>{const e=document.getElementById('adminPw');if(e)e.focus();},0);
+}
+function checkAdminPw(){const v=(document.getElementById('adminPw').value||'').trim();if(v===ADMIN_PASSWORD){adminUnlocked=true;adminDraft=clone(C);renderAdmin();}else toast('비밀번호가 올바르지 않습니다');}
+function aField(path,label,type){
+  type=type||'text';
+  const val=getPath(adminDraft,path);
+  if(type==='list'){
+    const arr=Array.isArray(val)?val:[];
+    return `<div class="afield"><label>${esc(label)}</label>
+      ${arr.map((v,i)=>`<div class="row"><input class="input" value="${esc(v)}" oninput="aListSet('${path}',${i},this.value)"><button class="row-del" onclick="aListDel('${path}',${i})">${I.trash}</button></div>`).join('')}
+      <button class="add-row" onclick="aListAdd('${path}')">${I.plus} 항목 추가</button></div>`;
+  }
+  if(type==='pairs'){
+    const arr=Array.isArray(val)?val:[];
+    return `<div class="afield"><label>${esc(label)}</label>
+      ${arr.map((it,i)=>`<div class="pair-item"><div class="ptop"><input class="input" placeholder="이름" value="${esc(it.name)}" oninput="aPairSet('${path}',${i},'name',this.value)"><button class="row-del" onclick="aPairDel('${path}',${i})">${I.trash}</button></div><input class="input" placeholder="설명(선택)" value="${esc(it.desc||'')}" oninput="aPairSet('${path}',${i},'desc',this.value)"></div>`).join('')}
+      <button class="add-row" onclick="aPairAdd('${path}')">${I.plus} 항목 추가</button></div>`;
+  }
+  if(type==='cards'){
+    const arr=Array.isArray(val)?val:[];
+    return `<div class="afield"><label>${esc(label)}</label>
+      ${arr.map((it,i)=>`<div class="card-edit"><div class="ce-label">작은 문구</div><input class="input" value="${esc(it.kicker)}" oninput="aSet('${path}.${i}.kicker',this.value)"><div class="ce-label">제목</div><input class="input" value="${esc(it.name)}" oninput="aSet('${path}.${i}.name',this.value)"><div class="ce-label">설명</div><input class="input" value="${esc(it.desc)}" oninput="aSet('${path}.${i}.desc',this.value)"></div>`).join('')}</div>`;
+  }
+  if(type==='ta') return `<div class="afield"><label>${esc(label)}</label><textarea class="input" oninput="aSet('${path}',this.value)">${esc(val)}</textarea></div>`;
+  if(type==='num') return `<div class="afield"><label>${esc(label)}</label><input class="input" type="number" min="1" value="${esc(val)}" oninput="aSet('${path}',Number(this.value)||1)"></div>`;
+  return `<div class="afield"><label>${esc(label)}</label><input class="input" value="${esc(val)}" oninput="aSet('${path}',this.value)"></div>`;
+}
+function adminForm(){
+  const secs=SCHEMA.map((sec,si)=>`<details class="admin-sec" ${si===0?'open':''}><summary>${esc(sec.title)}<span class="chev">${I.arrow}</span></summary><div class="admin-body">${sec.fields.map(f=>aField(f[0],f[1],f[2])).join('')}</div></details>`).join('');
+  $app.innerHTML=topbar('설정 · 문구/문항 편집','/')+`<div class="screen">
+    ${!fbReady?`<div class="setup-banner">⚠️ Firebase 미설정 상태입니다. 지금은 미리보기만 되고 <b>저장이 안 됩니다.</b></div>`:`<div class="note" style="margin-bottom:16px">아래에서 화면 문구와 설문 항목을 자유롭게 바꾸고 저장하세요. 저장하면 <b>모든 사용자 화면에 즉시 반영</b>됩니다.</div>`}
+    ${secs}
+    <button class="btn-ghost" style="margin-top:6px" onclick="adminReset()">기본값으로 되돌리기</button>
+  </div>`;
+  setBottom(`<button class="btn-primary" onclick="adminSave()">저장하기</button>`);
+}
+function aSet(path,val){setPath(adminDraft,path,val);}
+function aListSet(path,i,val){getPath(adminDraft,path)[i]=val;}
+function aListAdd(path){getPath(adminDraft,path).push('');adminForm();}
+function aListDel(path,i){getPath(adminDraft,path).splice(i,1);adminForm();}
+function aPairSet(path,i,key,val){getPath(adminDraft,path)[i][key]=val;}
+function aPairAdd(path){getPath(adminDraft,path).push({name:'',desc:''});adminForm();}
+function aPairDel(path,i){getPath(adminDraft,path).splice(i,1);adminForm();}
+function adminReset(){if(!confirm('모든 문구·항목을 처음 기본값으로 되돌릴까요? (저장 전까지는 실제 반영 안 됨)'))return;adminDraft=clone(DEFAULT_CONTENT);adminForm();toast('기본값으로 되돌렸습니다 · 저장해야 적용됩니다');}
+async function adminSave(){
+  if(!fbReady){toast('Firebase 설정이 필요합니다');return;}
+  const b=$barInner.querySelector('button');if(b){b.disabled=true;b.innerHTML='<span class="spin"></span>';}
+  try{
+    await db.collection('settings').doc('content').set(adminDraft);
+    C=clone(adminDraft);
+    toast('저장되었습니다 · 모든 화면에 반영됩니다');
+    if(b){b.disabled=false;b.textContent='저장하기';}
+  }catch(e){console.error(e);toast('저장에 실패했습니다 (규칙 확인)');if(b){b.disabled=false;b.textContent='저장하기';}}
+}
+
+/* =========================================================
+   시작
+========================================================= */
+(async function boot(){
+  resetSurvey();resetConsult();resetView();
+  router();                 // 기본 콘텐츠로 먼저 그림
+  await loadContent();      // 저장된 문구 불러오기
+  if(viewState) viewState.level=C.view.levels[0]||'';
+  router();                 // 반영해 다시 그림
+})();
+</script>
+</body>
+</html>
